@@ -1,4 +1,4 @@
-24841509113541450
+24843264781608918
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -99547,6 +99547,13 @@ EVQWGD001
 6
 6
 footprints
+JST_GH_SM02B-GHS-TB_1x02-1MP_P1.25mm_Horizontal
+JST GH series connector, SM02B-GHS-TB (http://www.jst-mfg.com/product/pdf/eng/eGH.pdf), generated with kicad-footprint-generator
+connector JST GH horizontal
+0
+4
+4
+footprints
 JST_SH4
 
 
@@ -99726,8 +99733,8 @@ nnv2-smd-2x
 
 
 0
-48
-48
+24
+24
 footprints
 slide-switch-smd
 
