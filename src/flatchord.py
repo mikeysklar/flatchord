@@ -20,11 +20,20 @@ i2c = board.I2C()
 bus = I2CDisplayBus(i2c, device_address=0x3C, reset=None)
 display = SSD1306(bus, width=128, height=64)
 
-display_group = displayio.Group(scale=1, x=0, y=10)
+display_group = displayio.Group(scale=1)
 display.root_group = display_group
 
+# Status bar label 
+status_label = label.Label(
+    terminalio.FONT, text="notes.txt", color=0xFFFFFF, x=0, y=5, scale=1
+)
+display_group.append(status_label)
+
+# Main text label 
 text_buffer = ""
-text_label = label.Label(terminalio.FONT, text=text_buffer, color=0xFFFFFF)
+text_label = label.Label(
+    terminalio.FONT, text=text_buffer, color=0xFFFFFF, x=0, y=24, scale=2
+)
 display_group.append(text_label)
 
 SW_PINS = (
