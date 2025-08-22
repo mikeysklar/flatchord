@@ -1,7 +1,6 @@
 import time
 import digitalio
 import board
-import busio
 import displayio
 from i2cdisplaybus import I2CDisplayBus
 from adafruit_displayio_ssd1306 import SSD1306
@@ -9,11 +8,15 @@ import terminalio
 from adafruit_display_text import label
 import chords_config
 
+# Power on peripherals if needed
+vcc = digitalio.DigitalInOut(board.VCC_OFF)
+vcc.direction = digitalio.Direction.OUTPUT
+vcc.value = True
 time.sleep(0.5)
 
 displayio.release_displays()
 
-i2c = busio.I2C(scl=board.IO9, sda=board.IO8, frequency=400_000)
+i2c = board.I2C()
 bus = I2CDisplayBus(i2c, device_address=0x3C, reset=None)
 display = SSD1306(bus, width=128, height=64)
 
@@ -34,11 +37,11 @@ text_label = label.Label(
 display_group.append(text_label)
 
 SW_PINS = (
-    board.IO6,  # SW0
-    board.IO5,  # SW1
-    board.IO4,  # SW2
-    board.IO2,  # SW3
-    board.IO7,  # SW4
+    board.P1_04,  # SW0
+    board.P0_11,  # SW1
+    board.P1_00,  # SW2
+    board.P0_24,  # SW3
+    board.P1_06,  # SW4
 )
 
 pins = []
