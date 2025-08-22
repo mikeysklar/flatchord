@@ -22,16 +22,10 @@ display = adafruit_displayio_sh1106.SH1106(bus, width=128, height=64, colstart=2
 display_group = displayio.Group(scale=1)
 display.root_group = display_group
 
-# Status bar label 
-status_label = label.Label(
-    terminalio.FONT, text="notes.txt", color=0xFFFFFF, x=0, y=5, scale=1
-)
-display_group.append(status_label)
-
 # Main text label 
 text_buffer = ""
 text_label = label.Label(
-    terminalio.FONT, text=text_buffer, color=0xFFFFFF, x=0, y=24, scale=2
+    terminalio.FONT, text=text_buffer, color=0xFFFFFF, x=0, y=15, scale=2
 )
 display_group.append(text_label)
 
@@ -295,9 +289,9 @@ def check_chords():
                                 char = " "
                             else:
                                 char = "?"
-                            MAX_CHARS = display.width // (6 * display_group.scale)
+                            WRAP = 10  # wrap after 10 characters, fixed
                             lines = text_buffer.split("\n")
-                            if len(lines[-1]) >= MAX_CHARS:
+                            if len(lines[-1]) >= WRAP:
                                 text_buffer += "\n" + char
                             else:
                                 text_buffer += char
