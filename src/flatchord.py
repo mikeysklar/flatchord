@@ -4,7 +4,7 @@ import board
 import busio
 import displayio
 from i2cdisplaybus import I2CDisplayBus
-from adafruit_displayio_ssd1306 import SSD1306
+import adafruit_displayio_sh1106
 import terminalio
 from adafruit_display_text import label
 import chords_config
@@ -15,7 +15,9 @@ displayio.release_displays()
 
 i2c = busio.I2C(scl=board.IO9, sda=board.IO8, frequency=400_000)
 bus = I2CDisplayBus(i2c, device_address=0x3C, reset=None)
-display = SSD1306(bus, width=128, height=64)
+
+# SH1106 has 132x64 RAM; most 128x64 modules are shifted. Try colstart=2 (or 0/4 if needed).
+display = adafruit_displayio_sh1106.SH1106(bus, width=128, height=64, colstart=2)
 
 display_group = displayio.Group(scale=1)
 display.root_group = display_group
