@@ -53,17 +53,17 @@ num_nav = {  # layer-2: numbers & thumb-based arrows
 
     # Thumb-based ARROWS 
     (0, 4):         Keycode.UP_ARROW,
-    (1, 4):         Keycode.DOWN_ARROW,
+    (1, 4):         Keycode.LEFT_ARROW,
     (2, 4):         Keycode.RIGHT_ARROW,
-    (3, 4):         Keycode.LEFT_ARROW,
+    (3, 4):         Keycode.DOWN_ARROW,
 
     # Thumb-based NAV
     (0, 1, 4):      Keycode.PAGE_UP,
     (2, 3, 4):      Keycode.PAGE_DOWN,
-    (0, 1, 2, 4):   Keycode.END,
-    (0, 2, 4):      Keycode.DELETE,
-    (1, 3, 4):      Keycode.INSERT,
-    (1, 2, 3, 4):   Keycode.HOME,
+    (0, 1, 2, 4):   Keycode.HOME,
+    (0, 2, 4):      Keycode.INSERT,
+    (1, 3, 4):      Keycode.DELETE,
+    (1, 2, 3, 4):   Keycode.END,
 }
 
 # ────────────── Layer 3: Whitespace & Delimiters ──────────────

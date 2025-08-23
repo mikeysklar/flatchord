@@ -8,8 +8,9 @@ import adafruit_displayio_sh1106
 import terminalio
 from adafruit_display_text import label
 import chords_config
+import storage
 
-time.sleep(0.5)
+time.sleep(0.1)
 
 displayio.release_displays()
 
@@ -109,6 +110,66 @@ thumb_locked       = False
 MOVE_DELTA = 5
 ACCEL_MULTIPLIER = 2
 ACCEL_CHORD = (1, 2, 3)
+
+# ─── Save-to-file config ──────────────────────────────────────────────
+SAVE_PATH = "/notes.txt"
+
+def _insert_code():
+    # Try to get Keycode.INSERT without requiring HID to be enabled
+    try:
+        from adafruit_hid.keycode import Keycode
+        return Keycode.INSERT
+    except Exception:
+        # HID usage ID for Insert is 73
+        return 73
+
+INSERT_CODE = _insert_code()
+
+# ─── Make FS writable if it’s read-only ──────────────────────────────
+def ensure_writable():
+    try:
+        with open("/.__rw_test__", "w") as _t:
+            _t.write("x")
+        # cleanup
+        try:
+            import os
+            os.remove("/.__rw_test__")
+        except Exception:
+            pass
+        return True
+    except OSError:
+        # Attempt to remount read-write
+        try:
+            storage.remount("/", False)  # False => read-write
+            return True
+        except Exception as e:
+            print("Remount failed:", e)
+            return False
+
+# ─── Updated save routine ────────────────────────────────────────────
+def save_entry():
+    global text_buffer, text_label
+    entry = text_buffer.rstrip("\n")
+    path = "/notes.txt"
+
+    # Ensure FS is writable; try once to fix if not
+    if not ensure_writable():
+        print("Save aborted: filesystem still read-only")
+        return
+
+    try:
+        with open(path, "a") as f:
+            f.write((entry + "\n") if entry else "\n")
+        try:
+            storage.sync()
+        except Exception:
+            pass
+        print(f"Saved {len(entry)} chars to {path}")
+        # Clear buffer for the next entry
+        text_buffer = ""
+        text_label.text = text_buffer
+    except OSError as e:
+        print("Save failed:", e)
 
 # ─── Core chord logic ────────────────────────────────────────────────
 def check_chords():
@@ -278,6 +339,12 @@ def check_chords():
                         elif kc == 42:  # Backspace
                             text_buffer = text_buffer[:-1]
                             text_label.text = text_buffer
+                        # ── NEW: Save on INSERT ─────────────────────
+                        elif kc == INSERT_CODE:
+                            save_entry()
+                            # Optional: brief debounce so you don't double-save
+                            time.sleep(0.15)
+
                         else:
                             if 4 <= kc <= 29:  # A-Z
                                 char = chr(kc - 4 + ord('a'))
