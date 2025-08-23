@@ -110,11 +110,27 @@ viewer_mode  = False
 entries      = []
 entry_idx    = 0
 entry_offset = 0  # kept for future per-entry scrolling (10-char steps)
+typing_offset = 0
+
 
 # ─── Mouse chords for layer-7 ────────────────────────────────────────
 MOVE_DELTA = 5
 ACCEL_MULTIPLIER = 2
 ACCEL_CHORD = (1, 2, 3)
+
+# ─── edit view ──────────────────────────────────────────────
+def render_typing_window():
+    """Render the last 20 chars of text_buffer starting at typing_offset."""
+    global text_buffer, text_label, typing_offset
+    visible_window = 20
+    # Clamp offset in case buffer shrank
+    typing_offset = max(0, min(typing_offset, max(0, len(text_buffer) - visible_window)))
+    start = typing_offset
+    end   = typing_offset + visible_window
+    window = text_buffer[start:end]
+    # Pad to exactly 20 chars so both lines draw every time
+    window = window + " " * (visible_window - len(window))
+    text_label.text = window[:10] + "\n" + window[10:]
 
 # ─── Save-to-file config ──────────────────────────────────────────────
 SAVE_PATH = "/notes.txt"
@@ -274,7 +290,7 @@ def check_chords():
     global modifier_armed, held_modifier, last_time, last_repeat, accel_active
     global held_nav_combo, last_nav, held_combo, last_pending_combo
     global held_scroll_combo, last_scroll, text_buffer, text_label
-    global usbmode
+    global usbmode, typing_offset
 
     now     = time.monotonic()
     pressed = tuple(not p.value for p in pins)
@@ -432,9 +448,14 @@ def check_chords():
 
                         if kc == 61:  # handled above
                             pass
+                        # ── Backspace Logic ─────────────────────
                         elif kc == 42:  # Backspace
-                            text_buffer = text_buffer[:-1]
-                            text_label.text = text_buffer
+                            if text_buffer:
+                                text_buffer = text_buffer[:-1]
+                                # If we deleted back past the current window, pull it up by one line
+                                if typing_offset > 0 and len(text_buffer) <= typing_offset:
+                                    typing_offset = max(0, typing_offset - 10)
+                            render_typing_window()
                         # ── Save on INSERT ─────────────────────
                         elif kc == INSERT_CODE:
                             save_entry()
@@ -456,23 +477,27 @@ def check_chords():
                             time.sleep(0.08)
 
                         else:
-                            if 4 <= kc <= 29:  # A-Z
+                            # 1. Map kc -> printable char
+                            if 4 <= kc <= 29:        # A-Z
                                 char = chr(kc - 4 + ord('a'))
-                            elif 30 <= kc <= 38:  # 1-9
+                            elif 30 <= kc <= 38:     # 1-9
                                 char = chr(kc - 30 + ord('1'))
-                            elif kc == 39:
+                            elif kc == 39:           # 0
                                 char = "0"
-                            elif kc == 44:
+                            elif kc == 44:           # Space
                                 char = " "
                             else:
-                                char = "?"
-                            WRAP = 10  # wrap after 10 characters, fixed
-                            lines = text_buffer.split("\n")
-                            if len(lines[-1]) >= WRAP:
-                                text_buffer += "\n" + char
-                            else:
-                                text_buffer += char
-                            text_label.text = text_buffer
+                                char = "?"           # <-- here
+
+                            # 2. Append the character
+                            text_buffer += char
+
+                            # 3. If we overflow the 2×10 window, scroll down one line (10 chars)
+                            if len(text_buffer) > typing_offset + 20:
+                                typing_offset += 10
+
+                            # 4. Render the current typing window
+                            render_typing_window()
 
         sent_release = True
         time.sleep(DEBOUNCE_UP)
