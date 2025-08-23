@@ -189,6 +189,8 @@ def _kc(vname, fallback):
 
 KC_PAGE_UP   = _kc("PAGE_UP",   75)
 KC_PAGE_DOWN = _kc("PAGE_DOWN", 78)
+KC_UP        = _kc("UP_ARROW",  82)
+KC_DOWN      = _kc("DOWN_ARROW",81)
 
 def load_entries():
     """(Re)load entries from /notes.txt, ignoring blanks like ',\\n'."""
@@ -248,6 +250,20 @@ def handle_page_nav(kc):
     elif kc == KC_PAGE_DOWN:
         entry_idx = (entry_idx + 1) % len(entries)
     entry_offset = 0
+    render_entry_window()
+
+def handle_intra_scroll(kc):
+    """Scroll inside the current entry by 10-char lines; clamp to bounds."""
+    global entry_offset
+    if not entries:
+        render_entry_window()
+        return
+    s = entries[entry_idx]
+    max_off = max(0, len(s) - 20)  # 2 lines × 10 chars visible = 20 window
+    if kc == KC_UP:
+        entry_offset = max(0, entry_offset - 10)
+    elif kc == KC_DOWN:
+        entry_offset = min(max_off, entry_offset + 10)
     render_entry_window()
 
 # ─── Core chord logic ────────────────────────────────────────────────
@@ -431,6 +447,12 @@ def check_chords():
                                 handle_page_nav(kc)     # wrap-around prev/next
                             # (Optional) small debounce
                             time.sleep(0.12)
+                        # ── VIEW: intra-entry scroll (UP/DOWN) ───────
+                        elif kc in (KC_UP, KC_DOWN):
+                            if not viewer_mode:
+                                enter_viewer()
+                            handle_intra_scroll(kc)
+                            time.sleep(0.08)
 
                         else:
                             if 4 <= kc <= 29:  # A-Z
