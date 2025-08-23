@@ -105,6 +105,10 @@ held_scroll_combo = ()
 last_scroll       = 0.0
 last_thumb_rise    = 0.0
 thumb_locked       = False
+viewer_mode  = False
+entries      = []
+entry_idx    = 0
+entry_offset = 0  # kept for future per-entry scrolling (10-char steps)
 
 # ─── Mouse chords for layer-7 ────────────────────────────────────────
 MOVE_DELTA = 5
@@ -146,7 +150,7 @@ def ensure_writable():
             print("Remount failed:", e)
             return False
 
-# ─── Updated save routine ────────────────────────────────────────────
+# ─── save ────────────────────────────────────────────
 def save_entry():
     global text_buffer, text_label
     entry = text_buffer.rstrip("\n")
@@ -159,7 +163,10 @@ def save_entry():
 
     try:
         with open(path, "a") as f:
-            f.write((entry + "\n") if entry else "\n")
+            if entry:
+                f.write(entry + ",\n")   # <-- add comma + newline
+            else:
+                f.write(",\n")           # <-- blank entry still has comma
         try:
             storage.sync()
         except Exception:
@@ -170,6 +177,78 @@ def save_entry():
         text_label.text = text_buffer
     except OSError as e:
         print("Save failed:", e)
+
+# ─── viewer mode ───────────────────────────────────────────────
+
+def _kc(vname, fallback):
+    try:
+        from adafruit_hid.keycode import Keycode
+        return getattr(Keycode, vname)
+    except Exception:
+        return fallback
+
+KC_PAGE_UP   = _kc("PAGE_UP",   75)
+KC_PAGE_DOWN = _kc("PAGE_DOWN", 78)
+
+def load_entries():
+    """(Re)load entries from /notes.txt, ignoring blanks like ',\\n'."""
+    global entries, entry_idx, entry_offset
+    try:
+        with open(SAVE_PATH, "r") as f:
+            data = f.read().replace("\r\n", "\n")
+    except OSError:
+        entries = []
+        entry_idx = 0
+        entry_offset = 0
+        return
+
+    parts = data.split(",\n")
+    if parts and parts[-1] == "":
+        parts.pop()
+
+    filtered = []
+    for p in parts:
+        if p.strip() == "":
+            continue
+        filtered.append(p.rstrip("\r\n"))
+
+    entries = filtered
+    entry_idx = 0 if entries else 0
+    entry_offset = 0
+
+def render_entry_window():
+    """Show current entry in a fixed 2×10 window starting at entry_offset."""
+    global text_label
+    if not entries:
+        text_label.text = "(no notes)"
+        return
+    s = entries[entry_idx]
+    start = max(0, min(entry_offset, max(0, len(s) - 20)))
+    window = s[start:start+20]
+    window += " " * (20 - len(window))
+    text_label.text = window[:10] + "\n" + window[10:]
+
+def enter_viewer():
+    """Clear screen, load entries, show first entry."""
+    global viewer_mode, text_buffer
+    text_buffer = ""           # clear typing buffer on entry
+    text_label.text = ""       # clear screen immediately
+    load_entries()
+    viewer_mode = True
+    render_entry_window()
+
+def handle_page_nav(kc):
+    """PAGE_UP/PAGE_DOWN with wrap-around between entries."""
+    global entry_idx, entry_offset
+    if not entries:
+        render_entry_window()
+        return
+    if kc == KC_PAGE_UP:
+        entry_idx = (entry_idx - 1) % len(entries)
+    elif kc == KC_PAGE_DOWN:
+        entry_idx = (entry_idx + 1) % len(entries)
+    entry_offset = 0
+    render_entry_window()
 
 # ─── Core chord logic ────────────────────────────────────────────────
 def check_chords():
@@ -339,11 +418,19 @@ def check_chords():
                         elif kc == 42:  # Backspace
                             text_buffer = text_buffer[:-1]
                             text_label.text = text_buffer
-                        # ── NEW: Save on INSERT ─────────────────────
+                        # ── Save on INSERT ─────────────────────
                         elif kc == INSERT_CODE:
                             save_entry()
                             # Optional: brief debounce so you don't double-save
                             time.sleep(0.15)
+                        # ── VIEW: enter + wrap-around paging ─────────
+                        elif kc in (KC_PAGE_UP, KC_PAGE_DOWN):
+                            if not viewer_mode:
+                                enter_viewer()          # clears screen, loads first entry
+                            else:
+                                handle_page_nav(kc)     # wrap-around prev/next
+                            # (Optional) small debounce
+                            time.sleep(0.12)
 
                         else:
                             if 4 <= kc <= 29:  # A-Z
