@@ -19,6 +19,7 @@ bus = I2CDisplayBus(i2c, device_address=0x3C, reset=None)
 
 # SH1106 has 132x64 RAM; most 128x64 modules are shifted. Try colstart=2 (or 0/4 if needed).
 display = adafruit_displayio_sh1106.SH1106(bus, width=128, height=64, colstart=2)
+display.rotation = 180
 
 display_group = displayio.Group(scale=1)
 display.root_group = display_group
